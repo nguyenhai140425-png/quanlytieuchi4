@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+
+{% block title %}Xem các sự kiện đã diễn ra{% endblock %}
+
+{% block extra_css %}
+    <style>
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .table-container {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            min-width: 1180px;
+        }
+
+        th {
+            background: #fafafa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .criteria-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 0;
+        }
+
+        .tag {
+            background: #eee;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-right: 5px;
+            color: #555;
+            display: inline-block;
+        }
+
+        .filter-bar {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            color: #666;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .filter-group select {
+            min-width: 180px;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 14px;
+        }
+
+        .clear-filter {
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            line-height: 20px;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            width: min(620px, 100%);
+            max-height: 90vh;
+            overflow-y: auto;
+            background: #fff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 82px;
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-small {
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            min-width: 56px;
+            border-radius: 999px;
+            padding: 4px 8px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .money-over {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        .money-under {
+            color: #047857;
+            font-weight: 700;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; width: 100%;">
+        <h1>Xem các sự kiện đã diễn ra</h1>
+    </header>
+
+    <form method="get" class="filter-bar">
+        <div class="filter-group">
+            <label for="year">Năm</label>
+            <select id="year" name="year" onchange="this.form.submit()">
+                <option value="">Tất cả các năm</option>
+                {% for year in available_years %}
+                    <option value="{{ year }}" {% if year|stringformat:"s" == selected_year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if selected_year %}
+            <a href="{{ request.path }}" class="clear-filter">Bỏ lọc</a>
+        {% endif %}
+    </form>
+
+    <div class="table-container">
+        <table>
+            <thead>
+            <tr>
+                <th style="width: 50px; text-align: center;">STT</th>
+                <th>Tên sự kiện</th>
+                <th>Ngày bắt đầu</th>
+                <th>Ngày kết thúc</th>
+                <th>Năm</th>
+                <th style="text-align: right;">Người</th>
+                <th style="text-align: right;">Tổng tiền</th>
+                <th style="text-align: center;">Tiến độ</th>
+                <th style="text-align: right;">Thực tế</th>
+                <th style="text-align: right;">Chênh lệch</th>
+                <th>Ghi chú</th>
+                <th>Tiêu chí</th>
+                <th>Thao tác</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for event in events %}
+                <tr>
+                    <td style="text-align: center; color: #999;">{{ forloop.counter }}</td>
+                    <td><strong>{{ event.title }}</strong></td>
+                    <td>{{ event.fromDate|date:"d/m/Y" }}</td>
+                    <td>{{ event.toDate|date:"d/m/Y" }}</td>
+                    <td><strong>{{ event.year }}</strong></td>
+                    <td style="text-align: right;">{{ event.totalUserAllocated|default:"0" }}</td>
+                    <td style="text-align: right; font-weight: bold;">
+                        <span class="js-money" data-value="{{ event.totalAmount|default:'0' }}"></span>
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="status-badge">{{ event.progress_percent|default:"0" }}%</span>
+                        <div style="font-size: 12px; color: #666; margin-top: 4px;">{{ event.get_completion_status_display }}</div>
+                    </td>
+                    <td style="text-align: right; font-weight: bold;">
+                        {% if event.report_updated_at %}
+                            <span class="js-money" data-value="{{ event.actual_amount|default:'0' }}"></span>
+                        {% else %}
+                            <span style="color: #888;">Chưa cập nhật</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        {% if event.report_updated_at %}
+                            <span class="js-diff" data-planned="{{ event.totalAmount|default:'0' }}" data-actual="{{ event.actual_amount|default:'0' }}"></span>
+                        {% else %}
+                            <span style="color: #888;">Chưa cập nhật</span>
+                        {% endif %}
+                    </td>
+                    <td style="max-width: 220px; color: #555;">
+                        {% if event.incomplete_reason %}
+                            <div><strong>Lý do:</strong> {{ event.incomplete_reason }}</div>
+                        {% endif %}
+                        {% if event.over_budget_note %}
+                            <div><strong>Vượt chi phí:</strong> {{ event.over_budget_note }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="criteria-container">
+                        {% for cat in event.categories.all %}
+                            <span class="tag">{{ cat.name }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-small"
+                                onclick="openReportModal('{{ event.id }}', '{{ event.title|escapejs }}', '{{ event.progress_percent|default:"0" }}', '{{ event.completion_status }}', '{{ event.actual_amount|default:"0" }}', '{{ event.totalAmount|default:"0" }}', '{{ event.incomplete_reason|default_if_none:""|escapejs }}', '{{ event.over_budget_note|default_if_none:""|escapejs }}')">
+                            Cập nhật
+                        </button>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="13" style="text-align: center; color: #999; padding: 40px;">Chưa có dữ liệu nào.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal-content">
+            <h3 id="reportModalTitle" style="margin: 0 0 18px; font-size: 18px;">Cập nhật báo cáo sau sự kiện</h3>
+            <form method="post" id="reportForm">
+                {% csrf_token %}
+                <input type="hidden" name="event_id" id="report_event_id">
+                <input type="hidden" name="selected_year" value="{{ selected_year }}">
+                <input type="hidden" id="planned_amount_value">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="progress_percent">Tiến độ hoàn thành (%)</label>
+                        <input type="number" name="progress_percent" id="progress_percent" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="completion_status">Trạng thái</label>
+                        <select name="completion_status" id="completion_status" required>
+                            {% for value, label in progress_status_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Chi phí dự kiến</label>
+                        <input type="text" id="planned_amount_display" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="actual_amount">Chi phí thực tế</label>
+                        <input type="text" name="actual_amount" id="actual_amount" required>
+                    </div>
+                    <div class="form-group full">
+                        <label for="incomplete_reason">Lý do nếu chưa hoàn thành</label>
+                        <textarea name="incomplete_reason" id="incomplete_reason"></textarea>
+                    </div>
+                    <div class="form-group full">
+                        <label for="over_budget_note">Ghi chú nếu vượt chi phí</label>
+                        <textarea name="over_budget_note" id="over_budget_note"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeReportModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu báo cáo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const reportModal = document.getElementById('reportModal');
+
+        function toNumber(value) {
+            return Number(String(value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+        }
+
+        function formatMoney(value) {
+            return Number(value || 0).toLocaleString('vi-VN') + ' đ';
+        }
+
+        function renderMoneyFields() {
+            document.querySelectorAll('.js-money').forEach(function (item) {
+                item.textContent = formatMoney(item.dataset.value);
+            });
+
+            document.querySelectorAll('.js-diff').forEach(function (item) {
+                const planned = toNumber(item.dataset.planned);
+                const actual = toNumber(item.dataset.actual);
+                const diff = actual - planned;
+                item.classList.toggle('money-over', diff > 0);
+                item.classList.toggle('money-under', diff <= 0);
+                if (diff > 0) {
+                    item.textContent = 'Vượt ' + formatMoney(diff);
+                } else if (diff < 0) {
+                    item.textContent = 'Tiết kiệm ' + formatMoney(Math.abs(diff));
+                } else {
+                    item.textContent = 'Đúng ngân sách';
+                }
+            });
+        }
+
+        function openReportModal(id, title, progress, status, actualAmount, plannedAmount, reason, overBudgetNote) {
+            document.getElementById('reportModalTitle').textContent = 'Cập nhật báo cáo: ' + title;
+            document.getElementById('report_event_id').value = id;
+            document.getElementById('progress_percent').value = progress || 0;
+            document.getElementById('completion_status').value = status || 1;
+            document.getElementById('actual_amount').value = Number(actualAmount || 0).toLocaleString('vi-VN');
+            document.getElementById('planned_amount_value').value = plannedAmount || 0;
+            document.getElementById('planned_amount_display').value = formatMoney(plannedAmount);
+            document.getElementById('incomplete_reason').value = reason || '';
+            document.getElementById('over_budget_note').value = overBudgetNote || '';
+            reportModal.classList.add('active');
+        }
+
+        function closeReportModal() {
+            reportModal.classList.remove('active');
+        }
+
+        document.getElementById('actual_amount').addEventListener('input', function () {
+            const raw = this.value.replace(/[^\d]/g, '');
+            this.value = raw ? Number(raw).toLocaleString('vi-VN') : '';
+        });
+
+        document.getElementById('reportForm').addEventListener('submit', function (event) {
+            const progress = Number(document.getElementById('progress_percent').value || 0);
+            const status = Number(document.getElementById('completion_status').value || 0);
+            const actualAmount = toNumber(document.getElementById('actual_amount').value);
+            const plannedAmount = toNumber(document.getElementById('planned_amount_value').value);
+            const reason = document.getElementById('incomplete_reason').value.trim();
+            const overBudgetNote = document.getElementById('over_budget_note').value.trim();
+
+            if ((progress < 100 || status === 4) && !reason) {
+                alert('Vui lòng nhập lý do nếu sự kiện chưa hoàn thành.');
+                event.preventDefault();
+                return;
+            }
+
+            if (actualAmount > plannedAmount && !overBudgetNote) {
+                alert('Chi phí thực tế vượt dự kiến, vui lòng nhập ghi chú vượt chi phí.');
+                event.preventDefault();
+            }
+        });
+
+        window.addEventListener('click', function (event) {
+            if (event.target === reportModal) closeReportModal();
+        });
+
+        renderMoneyFields();
+    </script>
+{% endblock %}
